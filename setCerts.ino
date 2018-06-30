@@ -3,9 +3,9 @@
 #include <nvs_flash.h>
 #include <WiFiClientSecure.h>
 #include <MD5Builder.h>
+#include <WebServer.h>
 #include <PubSubClient.h> //https://github.com/knolleary/pubsubclient
-#include <WebServer.h> //https://github.com/bbx10/WebServer_tng
-#include <WiFiManager.h> //https://github.com/bbx10/WiFiManager
+#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #define KEY_MAX_SIZE 1984 //max size of an nvs key
 
@@ -121,7 +121,7 @@ void handleRoot() {
  <table>
    <tr><td>Host ID<td>
    <input type="text" id="mqtt_id" name="mqtt_id" value=")";
-  html += String(ESP_getChipId());
+  html += String(WIFI_getChipId());
   html += R"(">
    <tr><td>Host Address<td>
    <input type="text" id="mqtt_addr" name="mqtt_addr" width="42">

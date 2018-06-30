@@ -5,4 +5,4 @@ This is a quickie sketch that requires no modification to the code to use.  Uplo
 
 You can then connect to the web server at root to enter your MQTT credentials.  When you submit, it will save the credentials to NVS, and then attempt to make a connection.  If unsuccessful, it will give you some basic error info.  You can also connect directly to /test to test with saved credentials.
 
-The PubSubClient used is available in the Arduino IDE library manager.  The source for WebServer and WiFiManager have not been updated to work with ESP32 yet, so you will need to get those from [bbx10's github](http://github.com/bbx10).
+The PubSubClient and WiFiManager used are available in the Arduino IDE library manager.
