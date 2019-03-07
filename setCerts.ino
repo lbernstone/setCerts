@@ -1,16 +1,35 @@
-// Example AWS IOT tester with web based certificate upload
+/* Example AWS IOT tester with web based certificate upload
+   This example code is in the Public Domain (or CC0 licensed, at your option.)
+   Unless required by applicable law or agreed to in writing, this
+   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY KIND, either express or implied.
+*/
 #include <WiFi.h>
 #include <nvs_flash.h>
 #include <WiFiClientSecure.h>
 #include <MD5Builder.h>
 #include <WebServer.h>
 #include <PubSubClient.h> //https://github.com/knolleary/pubsubclient
-#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
-#define KEY_MAX_SIZE 1984 //max size of an nvs key
+#define KEY_MAX_SIZE 4000 //max size of an nvs string
+// remark out the ssid to use WiFiManager
+#define MYSSID "ssid"
+#define MYPASS "passwd"
+
+#ifndef MYSSID
+// WiFiManager currently needs to be run in the
+// development branch for ESP32
+#include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
+#endif
 
 nvs_handle nvs_mqtt;
 WebServer server(80);
+
+char* hostname() {
+  char host[19];
+  snprintf(host, 19, "ESP32-%012llX", ESP.getEfuseMac());
+  return host;
+}
 
 void set_nvs(const char* key, const char* value) {
   esp_err_t err = nvs_set_str(nvs_mqtt, key, value);
@@ -121,7 +140,7 @@ void handleRoot() {
  <table>
    <tr><td>Host ID<td>
    <input type="text" id="mqtt_id" name="mqtt_id" value=")";
-  html += String(WIFI_getChipId());
+  html += String(hostname());
   html += R"(">
    <tr><td>Host Address<td>
    <input type="text" id="mqtt_addr" name="mqtt_addr" width="42">
@@ -148,9 +167,14 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
 
+#ifdef MYSSID
+  WiFi.begin(MYSSID, MYPASS);
+  WiFi.waitForConnectResult();
+#else
   WiFiManager wifimanager;
-  //wifimanager.setDebugOutput(true);
-  wifimanager.autoConnect();
+  wifimanager.setDebugOutput(true);
+  wifimanager.autoConnect(hostname());
+#endif
   Serial.println(WiFi.localIP());
 
   esp_err_t err = nvs_flash_init();
