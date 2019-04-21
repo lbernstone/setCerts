@@ -29,7 +29,7 @@ WebServer server(80);
 
 char* hostname() {
   char host[19];
-  snprintf(host, 19, "ESP3https://github.com/lbernstone/setCerts2-%012llX", ESP.getEfuseMac());
+  snprintf(host, 19, "ESP32-%012llX", ESP.getEfuseMac());
   return host;
 }
 
