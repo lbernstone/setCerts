@@ -14,8 +14,8 @@
 
 #define KEY_MAX_SIZE 4000 //max size of an nvs string
 // unremark the ssid and pass to bypass WiFiManager
-//#define MYSSID "larryb"
-//#define MYPASS "clownfish"
+//#define MYSSID "ssid"
+//#define MYPASS "passwd"
 
 #ifndef MYSSID
 // WiFiManager currently needs to be run in the
@@ -29,7 +29,7 @@ WebServer server(80);
 
 char* hostname() {
   char host[19];
-  snprintf(host, 19, "ESP32-%012llX", ESP.getEfuseMac());
+  snprintf(host, 19, "ESP3https://github.com/lbernstone/setCerts2-%012llX", ESP.getEfuseMac());
   return host;
 }
 
