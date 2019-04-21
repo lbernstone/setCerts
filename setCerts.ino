@@ -5,16 +5,17 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <WiFi.h>
-#include <nvs_flash.h>
+#include <Preferences.h>
 #include <WiFiClientSecure.h>
+#include <mbedtls/sha256.h>
 #include <MD5Builder.h>
 #include <WebServer.h>
 #include <PubSubClient.h> //https://github.com/knolleary/pubsubclient
 
 #define KEY_MAX_SIZE 4000 //max size of an nvs string
-// remark out the ssid to use WiFiManager
-#define MYSSID "ssid"
-#define MYPASS "passwd"
+// unremark the ssid and pass to bypass WiFiManager
+//#define MYSSID "larryb"
+//#define MYPASS "clownfish"
 
 #ifndef MYSSID
 // WiFiManager currently needs to be run in the
@@ -22,7 +23,8 @@
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 #endif
 
-nvs_handle nvs_mqtt;
+//nvs_handle nvs_mqtt;
+Preferences prefs;
 WebServer server(80);
 
 char* hostname() {
@@ -31,27 +33,10 @@ char* hostname() {
   return host;
 }
 
-void set_nvs(const char* key, const char* value) {
-  esp_err_t err = nvs_set_str(nvs_mqtt, key, value);
-  if (err != ESP_OK) {
-    Serial.print("NVS Error: ");
-    Serial.println(err);
-  }
+void verify_ca(const char* cert, const char* server) {
 }
 
-String get_nvs (const char* key) {
-  size_t required_size = KEY_MAX_SIZE;
-  nvs_get_str(nvs_mqtt, key, NULL, &required_size);
-  char result[required_size];
-  esp_err_t err = nvs_get_str(nvs_mqtt, key, result, &required_size);
-  if (err != ESP_OK) {
-    Serial.print("NVS Error: ");
-    Serial.println(err);
-  }
-  return String(result);
-}
-
-String print_nvs (const char* key, const String val) {
+String print_key (const char* key, const String val) {
   String html = "<br>" + String(key) + ":  ";
   if (strstr(key,"cert")) {
     MD5Builder md5;
@@ -68,21 +53,25 @@ String runTest() {
   String mqtt_id, mqtt_addr;
   String root_ca_pem, certificate_pem_crt, private_pem_key;
   String result = "<html><head></head><body><h2>Testing MQTT Connection</h2>";
-  mqtt_id = get_nvs("mqtt_id");
-  result += print_nvs("mqtt_id",mqtt_id);
-  mqtt_addr = get_nvs("mqtt_addr");
-  result += print_nvs("mqtt_addr",mqtt_addr);
-  root_ca_pem = get_nvs("root_cert");
-  result += print_nvs("root_cert",root_ca_pem);
-  certificate_pem_crt = get_nvs("client_cert");
-  result += print_nvs("client_cert",certificate_pem_crt);
-  private_pem_key = get_nvs("cert_key");
-  result += print_nvs("cert_key",private_pem_key);
+  mqtt_id = prefs.getString("mqtt_id");
+  result += print_key("mqtt_id",mqtt_id);
+  mqtt_addr = prefs.getString("mqtt_addr");
+  result += print_key("mqtt_addr",mqtt_addr);
+  root_ca_pem = prefs.getString("root_cert");
+  result += print_key("root_cert",root_ca_pem);
+  certificate_pem_crt = prefs.getString("client_cert");  
+  result += print_key("client_cert",certificate_pem_crt);
+  private_pem_key = prefs.getString("cert_key");
+  result += print_key("cert_key",private_pem_key);
 
   WiFiClientSecure net;
   net.setCACert(root_ca_pem.c_str());
   net.setCertificate(certificate_pem_crt.c_str());
   net.setPrivateKey(private_pem_key.c_str());
+
+  net.connect(mqtt_addr.c_str(), 8883);
+  const char azfp[] = "8E CD E6 88 4F 3D 87 B1 12 5B A3 1A C3 FC B1 3D 70 16 DE 7F 57 CC 90 4F E1 CB 97 C6 AE 98 19 6E";
+  if (net.verify(azfp, mqtt_addr.c_str())) Serial.println("Certificate verified!");
 
   PubSubClient thing(mqtt_addr.c_str(), 8883, net);
   thing.connect(mqtt_id.c_str());
@@ -102,10 +91,10 @@ String runTest() {
 
 void handleTest() {
   if (server.hasArg("mqtt_addr")) {
-      set_nvs("mqtt_addr", server.arg("mqtt_addr").c_str());
+      prefs.putString("mqtt_addr", server.arg("mqtt_addr"));
   }
   if (server.hasArg("mqtt_id")) {
-      set_nvs("mqtt_id", server.arg("mqtt_id").c_str());
+      prefs.putString("mqtt_id", server.arg("mqtt_id"));
   }
   server.send(200, "text/html", runTest());
 }
@@ -129,7 +118,7 @@ void handleUpload() {
 // Since our files must be under the size of the buffer, we can ignore any
 // UPLOAD_FILE_WRITEs, and just use the buffer at FILE_END
     upload.buf[upload.totalSize]=0;
-    esp_err_t err = nvs_set_str(nvs_mqtt, upload.name.c_str(), (char*)upload.buf);
+    prefs.putString(upload.name.c_str(), (char*)upload.buf);
   }
 }
 
@@ -177,9 +166,7 @@ void setup() {
 #endif
   Serial.println(WiFi.localIP());
 
-  esp_err_t err = nvs_flash_init();
-  err = nvs_open("mqtt", NVS_READWRITE, &nvs_mqtt);
-
+  prefs.begin("mqtt");
   initWebserver();
 }
 
